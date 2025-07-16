@@ -63,14 +63,14 @@ static uint8_t _vl53l5cx_program_output_config(
 	p_dev->data_read_size = 0;
 
 	/* Enable mandatory output (meta and common data) */
-	uint32_t output_bh_enable[] = {
+	static const uint32_t output_bh_enable[] = {
 			0x0001FFFFU,
 			0x00000000U,
 			0x00000000U,
 			0xC0000000U};
 
 	/* Send addresses of possible output */
-	uint32_t output[] ={
+	static const uint32_t output[] ={
 			0x0000000DU,
 			0x54000040U,
 			0x9FD800C0U,
@@ -150,8 +150,8 @@ uint8_t vl53l5cx_calibrate_xtalk(
 		uint16_t			distance_mm)
 {
 	uint16_t timeout = 0;
-	uint8_t cmd[] = {0x00, 0x03, 0x00, 0x00};
-	uint8_t footer[] = {0x00, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x03, 0x04};
+	static const uint8_t cmd[] = {0x00, 0x03, 0x00, 0x00};
+	static const uint8_t footer[] = {0x00, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x03, 0x04};
 	uint8_t continue_loop = 1, status = VL53L5CX_STATUS_OK;
 
 	uint8_t resolution, frequency, target_order, sharp_prct, ranging_mode;
@@ -292,7 +292,7 @@ uint8_t vl53l5cx_get_caldata_xtalk(
 		uint8_t				*p_xtalk_data)
 {
 	uint8_t status = VL53L5CX_STATUS_OK, resolution;
-	uint8_t footer[] = {0x00, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x03, 0x04};
+	static const uint8_t footer[] = {0x00, 0x00, 0x00, 0x0F, 0x00, 0x01, 0x03, 0x04};
 
 	status |= vl53l5cx_get_resolution(p_dev, &resolution);
 	status |= vl53l5cx_set_resolution(p_dev, VL53L5CX_RESOLUTION_8X8);

@@ -109,7 +109,7 @@ uint8_t vl53l5cx_set_detection_thresholds(
 		VL53L5CX_DetectionThresholds	*p_thresholds)
 {
 	uint8_t i, status = VL53L5CX_STATUS_OK;
-	uint8_t grp_valid_target_cfg[] = {0x05, 0x05, 0x05, 0x05,
+	static const uint8_t grp_valid_target_cfg[] = {0x05, 0x05, 0x05, 0x05,
 					0x05, 0x05, 0x05, 0x05};
 
 	for(i = 0; i < (uint8_t) VL53L5CX_NB_THRESHOLDS; i++)
