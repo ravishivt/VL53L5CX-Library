@@ -14,7 +14,6 @@
 #include <string.h>
 #include "vl53l5cx_api.h"
 #include "vl53l5cx_buffers.h"
-#include "platform.h"
 
 /**
  * @brief Inner function, not available outside this file. This function is used
@@ -95,8 +94,8 @@ static uint8_t _vl53l5cx_send_offset_data(
 		uint8_t						resolution)
 {
 	uint8_t status = VL53L5CX_STATUS_OK;
-	uint32_t *signal_grid = (uint32_t*)smart_malloc(64 * sizeof(uint32_t));
-	int16_t *range_grid = (int16_t*)smart_malloc(64 * sizeof(int16_t));
+	uint32_t signal_grid[64];
+	int16_t range_grid[64];
 	static const uint8_t dss_4x4[] = {0x0F, 0x04, 0x04, 0x00, 0x08, 0x10, 0x10, 0x07};
 	static const uint8_t footer[] = {0x00, 0x00, 0x00, 0x0F, 0x03, 0x01, 0x01, 0xE4};
 	int8_t i, j;
@@ -110,9 +109,9 @@ static uint8_t _vl53l5cx_send_offset_data(
 		(void)memcpy(&(p_dev->temp_buffer[0x10]), dss_4x4, sizeof(dss_4x4));
 		VL53L5CX_SwapBuffer(p_dev->temp_buffer, VL53L5CX_OFFSET_BUFFER_SIZE);
 		(void)memcpy(signal_grid,&(p_dev->temp_buffer[0x3C]),
-			64 * sizeof(uint32_t));
+			sizeof(signal_grid));
 		(void)memcpy(range_grid,&(p_dev->temp_buffer[0x140]),
-			64 * sizeof(int16_t));
+			sizeof(range_grid));
 
 		for (j = 0; j < (int8_t)4; j++)
 		{
@@ -135,9 +134,9 @@ static uint8_t _vl53l5cx_send_offset_data(
 	    (void)memset(&range_grid[0x10], 0, (uint16_t)96);
 	    (void)memset(&signal_grid[0x10], 0, (uint16_t)192);
             (void)memcpy(&(p_dev->temp_buffer[0x3C]),
-		signal_grid, 64 * sizeof(uint32_t));
+		signal_grid, sizeof(signal_grid));
             (void)memcpy(&(p_dev->temp_buffer[0x140]),
-		range_grid, 64 * sizeof(int16_t));
+		range_grid, sizeof(range_grid));
             VL53L5CX_SwapBuffer(p_dev->temp_buffer, VL53L5CX_OFFSET_BUFFER_SIZE);
 	}
 
@@ -152,10 +151,6 @@ static uint8_t _vl53l5cx_send_offset_data(
 	status |=_vl53l5cx_poll_for_answer(p_dev, 4, 1,
 		VL53L5CX_UI_CMD_STATUS, 0xff, 0x03);
 
-	// Free allocated memory
-	smart_free(signal_grid);
-	smart_free(range_grid);
-
 	return status;
 }
 
@@ -169,10 +164,10 @@ static uint8_t _vl53l5cx_send_xtalk_data(
 		uint8_t				resolution)
 {
 	uint8_t status = VL53L5CX_STATUS_OK;
-	uint32_t *signal_grid = (uint32_t*)smart_malloc(64 * sizeof(uint32_t));
 	static const uint8_t res4x4[] = {0x0F, 0x04, 0x04, 0x17, 0x08, 0x10, 0x10, 0x07};
 	static const uint8_t dss_4x4[] = {0x00, 0x78, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08};
 	static const uint8_t profile_4x4[] = {0xA0, 0xFC, 0x01, 0x00};
+	uint32_t signal_grid[64];
 	int8_t i, j;
 
 	(void)memcpy(p_dev->temp_buffer, &(p_dev->xtalk_data[0]),
@@ -188,7 +183,7 @@ static uint8_t _vl53l5cx_send_xtalk_data(
 
 		VL53L5CX_SwapBuffer(p_dev->temp_buffer, VL53L5CX_XTALK_BUFFER_SIZE);
 		(void)memcpy(signal_grid, &(p_dev->temp_buffer[0x34]),
-			64 * sizeof(uint32_t));
+			sizeof(signal_grid));
 
 		for (j = 0; j < (int8_t)4; j++)
 		{
@@ -203,7 +198,7 @@ static uint8_t _vl53l5cx_send_xtalk_data(
 		}
 	    (void)memset(&signal_grid[0x10], 0, (uint32_t)192);
 	    (void)memcpy(&(p_dev->temp_buffer[0x34]),
-                  signal_grid, 64 * sizeof(uint32_t));
+                  signal_grid, sizeof(signal_grid));
 	    VL53L5CX_SwapBuffer(p_dev->temp_buffer, VL53L5CX_XTALK_BUFFER_SIZE);
 	    (void)memcpy(&(p_dev->temp_buffer[0x134]),
 	    profile_4x4, sizeof(profile_4x4));
@@ -216,7 +211,6 @@ static uint8_t _vl53l5cx_send_xtalk_data(
 	status |=_vl53l5cx_poll_for_answer(p_dev, 4, 1,
 			VL53L5CX_UI_CMD_STATUS, 0xff, 0x03);
 
-	smart_free(signal_grid);
 	return status;
 }
 
@@ -505,12 +499,11 @@ uint8_t vl53l5cx_start_ranging(
 	p_dev->streamcount = 255;
 
 	/* Enable mandatory output (meta and common data) */
-	uint32_t *output_bh_enable = (uint32_t*)smart_malloc(4 * sizeof(uint32_t));
-	// Initialize with base values
-	output_bh_enable[0] = 0x00000007U;
-	output_bh_enable[1] = 0x00000000U;
-	output_bh_enable[2] = 0x00000000U;
-	output_bh_enable[3] = 0xC0000000U;
+	uint32_t output_bh_enable[] = {
+		0x00000007U,
+		0x00000000U,
+		0x00000000U,
+		0xC0000000U};
 
 	/* Send addresses of possible output */
 	static const uint32_t output[] ={VL53L5CX_START_BH,
@@ -601,8 +594,8 @@ uint8_t vl53l5cx_start_ranging(
 			(uint16_t)sizeof(header_config));
 
 	status |= vl53l5cx_dci_write_data(p_dev,
-			(uint8_t*)output_bh_enable, VL53L5CX_DCI_OUTPUT_ENABLES,
-			(uint16_t)(4 * sizeof(uint32_t)));
+			(uint8_t*)&(output_bh_enable), VL53L5CX_DCI_OUTPUT_ENABLES,
+			(uint16_t)sizeof(output_bh_enable));
 
 	/* Start xshut bypass (interrupt mode) */
 	status |= VL53L5CX_WrByte(&(p_dev->platform), 0x7fff, 0x00);
@@ -624,7 +617,6 @@ uint8_t vl53l5cx_start_ranging(
 		status |= VL53L5CX_STATUS_ERROR;
 	}
 
-	smart_free(output_bh_enable);
 	return status;
 }
 
@@ -1230,10 +1222,9 @@ uint8_t vl53l5cx_dci_read_data(
 	int16_t i;
 	uint8_t status = VL53L5CX_STATUS_OK;
         uint32_t rd_size = (uint32_t) data_size + (uint32_t)12;
-	static const uint8_t cmd[] = {0x00, 0x00, 0x00, 0x00,
+	uint8_t cmd[] = {0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x0f,
 			0x00, 0x02, 0x00, 0x08};
-	uint8_t cmd_buffer[12];
 
 	/* Check if tmp buffer is large enough */
 	if((data_size + (uint16_t)12)>(uint16_t)VL53L5CX_TEMPORARY_BUFFER_SIZE)
@@ -1242,17 +1233,14 @@ uint8_t vl53l5cx_dci_read_data(
 	}
 	else
 	{
-		// Copy const cmd to mutable buffer
-		memcpy(cmd_buffer, cmd, sizeof(cmd));
-		
-		cmd_buffer[0] = (uint8_t)(index >> 8);	
-		cmd_buffer[1] = (uint8_t)(index & (uint32_t)0xff);			
-		cmd_buffer[2] = (uint8_t)((data_size & (uint16_t)0xff0) >> 4);
-		cmd_buffer[3] = (uint8_t)((data_size & (uint16_t)0xf) << 4);
+		cmd[0] = (uint8_t)(index >> 8);	
+		cmd[1] = (uint8_t)(index & (uint32_t)0xff);			
+		cmd[2] = (uint8_t)((data_size & (uint16_t)0xff0) >> 4);
+		cmd[3] = (uint8_t)((data_size & (uint16_t)0xf) << 4);
 
 	/* Request data reading from FW */
 		status |= VL53L5CX_WrMulti(&(p_dev->platform),
-			(VL53L5CX_UI_CMD_END-(uint16_t)11),cmd_buffer, sizeof(cmd_buffer));
+			(VL53L5CX_UI_CMD_END-(uint16_t)11),cmd, sizeof(cmd));
 		status |= _vl53l5cx_poll_for_answer(p_dev, 4, 1,
 			VL53L5CX_UI_CMD_STATUS,
 			0xff, 0x03);

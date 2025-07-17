@@ -200,24 +200,6 @@ uint8_t VL53L5CX_WaitMs(
         VL53L5CX_Platform *p_platform,
         uint32_t TimeMs);
 
-// Detect PSRAM at compile time
-#if CONFIG_ESP32S3_SPIRAM_SUPPORT || CONFIG_ESP32_SPIRAM_SUPPORT
-#define HAS_PSRAM 1
-#else
-#define HAS_PSRAM 0
-#endif
-
-// Smart allocation macros for PSRAM optimization
-#if HAS_PSRAM
-#define LARGE_BUFFER_ATTR EXT_RAM_BSS_ATTR
-#define smart_malloc(size) heap_caps_malloc(size, MALLOC_CAP_SPIRAM)
-#define smart_free(ptr) heap_caps_free(ptr)
-#else
-#define LARGE_BUFFER_ATTR
-#define smart_malloc(size) malloc(size)
-#define smart_free(ptr) free(ptr)
-#endif
-
 #endif	// _PLATFORM_H_
 
 #ifdef __cplusplus
